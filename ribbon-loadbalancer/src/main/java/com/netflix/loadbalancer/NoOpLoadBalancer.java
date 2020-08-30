@@ -26,7 +26,9 @@ import org.slf4j.LoggerFactory;
 /**
  * A noOp Loadbalancer
  * i.e. doesnt do anything "loadbalancer like"
- * 
+ *
+ * 实现父类中的所有方法，鸡毛也没做，都是空实现
+ *
  * @author stonse
  *
  */
