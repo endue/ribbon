@@ -66,9 +66,9 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements
         PrimeConnections.PrimeConnectionListener, IClientConfigAware {
 
     private static Logger logger = LoggerFactory.getLogger(BaseLoadBalancer.class);
-    // 默认Rule
+    // 默认Rule，轮询访问服务列表中的服务
     private final static IRule DEFAULT_RULE = new RoundRobinRule();
-    // 默认Ping策略
+    // 默认Ping策略，轮询ping所有的服务
     private final static SerialPingStrategy DEFAULT_PING_STRATEGY = new SerialPingStrategy();
     private static final String DEFAULT_NAME = "default";
     private static final String PREFIX = "LoadBalancer_";
