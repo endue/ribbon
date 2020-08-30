@@ -73,7 +73,7 @@ public class DynamicServerListLoadBalancer<T extends Server> extends BaseLoadBal
     // 动态更新服务列表
     // ServerListUpdater有两个实现类
     // com.netflix.loadbalancer.PollingServerListUpdater 定时任务，延迟1s执行之后每30s执行一次
-    // com.netflix.niws.loadbalancer.EurekaNotificationServerListUpdater 基于CacheRefreshedEvent时间更新
+    // com.netflix.niws.loadbalancer.EurekaNotificationServerListUpdater 基于CacheRefreshedEvent事件更新
     protected volatile ServerListUpdater serverListUpdater;
 
     public DynamicServerListLoadBalancer() {
