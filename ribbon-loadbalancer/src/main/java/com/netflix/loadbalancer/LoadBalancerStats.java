@@ -80,8 +80,14 @@ public class LoadBalancerStats implements IClientConfigAware {
             "niws.loadbalancer.default.circuitTripMaxTimeoutSeconds", 30) {};
 
     private String name;
-    
+
+    // 记录一个个zone 对应的ZoneStats
+    // key 是 zone
+    // value 是 ZoneStats
     volatile Map<String, ZoneStats> zoneStatsMap = new ConcurrentHashMap<>();
+    // 记录一个个zone对应的serverList
+    // key 是 zone
+    // value 是 serverList
     volatile Map<String, List<? extends Server>> upServerListZoneMap = new ConcurrentHashMap<>();
     
     private UnboxedIntProperty connectionFailureThreshold = new UnboxedIntProperty(CONNECTION_FAILURE_COUNT_THRESHOLD.defaultValue());

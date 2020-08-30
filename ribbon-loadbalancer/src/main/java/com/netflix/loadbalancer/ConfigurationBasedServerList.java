@@ -46,6 +46,7 @@ public class ConfigurationBasedServerList extends AbstractServerList<Server>  {
 
 	@Override
 	public List<Server> getUpdatedListOfServers() {
+		// 读取配置文件中的listOfServers的值
         String listOfServers = clientConfig.get(CommonClientConfigKey.ListOfServers);
         return derive(listOfServers);
 	}
@@ -54,8 +55,14 @@ public class ConfigurationBasedServerList extends AbstractServerList<Server>  {
 	public void initWithNiwsConfig(IClientConfig clientConfig) {
 	    this.clientConfig = clientConfig;
 	}
-	
+
+	/**
+	 * value为服务列表
+	 * @param value
+	 * @return
+	 */
 	protected List<Server> derive(String value) {
+		// 通过,分割配置文件中的服务列表，然后返回
 	    List<Server> list = Lists.newArrayList();
 		if (!Strings.isNullOrEmpty(value)) {
 			for (String s: value.split(",")) {

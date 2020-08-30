@@ -38,30 +38,42 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * changed at Runtime. It also contains facilities wherein the list of servers
  * can be passed through a Filter criteria to filter out servers that do not
  * meet the desired criteria.
+ *
+ * BaseLoadBalancer只提供给了服务列表的添加、获取功能
+ * DynamicServerListLoadBalancer是在BaseLoadBalancer上扩展了如下功能：
+ *  1.动态更新服务列表，依赖于ServerList
+ *  2.对服务列表的过滤，依赖于ServerListFilter
  * 
  * @author stonse
  * 
  */
 public class DynamicServerListLoadBalancer<T extends Server> extends BaseLoadBalancer {
     private static final Logger LOGGER = LoggerFactory.getLogger(DynamicServerListLoadBalancer.class);
-
+    // 这俩属性在这里没用到
     boolean isSecure = false;
     boolean useTunnel = false;
 
-    // to keep track of modification of server lists
+    // 标识ServerList正在更新服务列表
     protected AtomicBoolean serverListUpdateInProgress = new AtomicBoolean(false);
-
+    // ServerList 泛型为T，T继承了Server，其只有一个继承者为DiscoveryEnabledServer
+    // DynamicServerListLoadBalancer的动态更新功能就是基于ServerList，其有两个实现类
+    // com.netflix.loadbalancer.ConfigurationBasedServerList 读取配置文件中的listOfServers的值
+    // com.netflix.niws.loadbalancer.DiscoveryEnabledNIWSServerList 基于EurekaClient读取所有服务列表
     volatile ServerList<T> serverListImpl;
-
+    // 过滤器
     volatile ServerListFilter<T> filter;
 
     protected final ServerListUpdater.UpdateAction updateAction = new ServerListUpdater.UpdateAction() {
         @Override
         public void doUpdate() {
+            // 执行更新服务列表的方法
             updateListOfServers();
         }
     };
-
+    // 动态更新服务列表
+    // ServerListUpdater有两个实现类
+    // com.netflix.loadbalancer.PollingServerListUpdater 定时任务，延迟1s执行之后每30s执行一次
+    // com.netflix.niws.loadbalancer.EurekaNotificationServerListUpdater 基于CacheRefreshedEvent时间更新
     protected volatile ServerListUpdater serverListUpdater;
 
     public DynamicServerListLoadBalancer() {
@@ -84,6 +96,7 @@ public class DynamicServerListLoadBalancer<T extends Server> extends BaseLoadBal
     public DynamicServerListLoadBalancer(IClientConfig clientConfig, IRule rule, IPing ping,
                                          ServerList<T> serverList, ServerListFilter<T> filter,
                                          ServerListUpdater serverListUpdater) {
+        // 调用服务构造方法初始化父类BaseLoadBalancer
         super(clientConfig, rule, ping);
         this.serverListImpl = serverList;
         this.filter = filter;
@@ -91,6 +104,7 @@ public class DynamicServerListLoadBalancer<T extends Server> extends BaseLoadBal
         if (filter instanceof AbstractServerListFilter) {
             ((AbstractServerListFilter) filter).setLoadBalancerStats(getLoadBalancerStats());
         }
+        // 初始化
         restOfInit(clientConfig);
     }
 
@@ -135,33 +149,49 @@ public class DynamicServerListLoadBalancer<T extends Server> extends BaseLoadBal
     }
 
     void restOfInit(IClientConfig clientConfig) {
+        // 调用父类enablePrimingConnections属性，默认false
         boolean primeConnection = this.isEnablePrimingConnections();
         // turn this off to avoid duplicated asynchronous priming done in BaseLoadBalancer.setServerList()
+        // 关闭此选项以避免在BaseLoadBalancer.setServerList()中重复进行异步启动。
         this.setEnablePrimingConnections(false);
+        // 调用serverListUpdater的start()方法，传入初始化的updateAction动态更新服务列表
         enableAndInitLearnNewServersFeature();
-
+        // 更新服务列表(updateAction也是里面也是调用的这个方法)
         updateListOfServers();
+        // 如果父类的primeConnection不为null且enablePrimingConnections设置为true，
+        // 在更新完自己的服务列表后，需要调用父类primeConnection的primeConnections方法，去检查服务
         if (primeConnection && this.getPrimeConnections() != null) {
             this.getPrimeConnections()
                     .primeConnections(getReachableServers());
         }
+        // 还原父类enablePrimingConnections属性
         this.setEnablePrimingConnections(primeConnection);
         LOGGER.info("DynamicServerListLoadBalancer for client {} initialized: {}", clientConfig.getClientName(), this.toString());
     }
-    
-    
+
+
+    /**
+     * 设置服务列表，覆盖了父类com.netflix.loadbalancer.BaseLoadBalancer#setServersList(java.util.List)的方法
+     * @param lsrv
+     */
     @Override
     public void setServersList(List lsrv) {
+        // 调用父类的方法
         super.setServersList(lsrv);
+        // 遍历先添加的服务列表
         List<T> serverList = (List<T>) lsrv;
         Map<String, List<Server>> serversInZones = new HashMap<String, List<Server>>();
         for (Server server : serverList) {
             // make sure ServerStats is created to avoid creating them on hot
             // path
+            // 第一步：获取父类属性LoadBalancer(统计信息)
+            // 第二步：获取LoadBalancer的属性LoadingCache<Server, ServerStats> serverStatsCache，是一个缓存有效期默认30分钟，然后将服务和对应的ServerStats缓存起来
             getLoadBalancerStats().getSingleServerStat(server);
+            // 获取服务的zone
             String zone = server.getZone();
             if (zone != null) {
                 zone = zone.toLowerCase();
+                // 将传入的参数lsrv，根据zone进行分组记录到HashMap serversInZones中
                 List<Server> servers = serversInZones.get(zone);
                 if (servers == null) {
                     servers = new ArrayList<Server>();
@@ -170,12 +200,20 @@ public class DynamicServerListLoadBalancer<T extends Server> extends BaseLoadBal
                 servers.add(server);
             }
         }
+        // 更新父类的zoneStatsMap属性,也就是一个个zone的ZoneStats
         setServerListForZones(serversInZones);
     }
 
+    /**
+     * 参数zoneServersMap，key 是 zone、value 是 serverList
+     * 更新父类的zoneStatsMap属性,也就是一个个zone的ZoneStats
+     * @param zoneServersMap
+     */
     protected void setServerListForZones(
             Map<String, List<Server>> zoneServersMap) {
         LOGGER.debug("Setting server list for zones: {}", zoneServersMap);
+        // 第一步：获取父类属性LoadBalancer(统计信息)
+        // 第二步：同步到LoadBalancer的属性Map<String, List<? extends Server>> upServerListZoneMap中
         getLoadBalancerStats().updateZoneServerMapping(zoneServersMap);
     }
 
@@ -232,20 +270,25 @@ public class DynamicServerListLoadBalancer<T extends Server> extends BaseLoadBal
         }
     }
 
+    /**
+     * 获取serverListImpl的服务列表然后进行过滤
+     */
     @VisibleForTesting
     public void updateListOfServers() {
         List<T> servers = new ArrayList<T>();
         if (serverListImpl != null) {
+            // 获取服务列表
             servers = serverListImpl.getUpdatedListOfServers();
             LOGGER.debug("List of Servers for {} obtained from Discovery client: {}",
                     getIdentifier(), servers);
-
+            // 通过filter过滤服务列表
             if (filter != null) {
                 servers = filter.getFilteredListOfServers(servers);
                 LOGGER.debug("Filtered List of Servers for {} obtained from Discovery client: {}",
                         getIdentifier(), servers);
             }
         }
+        // 更新服务列表
         updateAllServerList(servers);
     }
 
@@ -256,14 +299,18 @@ public class DynamicServerListLoadBalancer<T extends Server> extends BaseLoadBal
      */
     protected void updateAllServerList(List<T> ls) {
         // other threads might be doing this - in which case, we pass
+        // 标识ServerList正在更新服务列表
         if (serverListUpdateInProgress.compareAndSet(false, true)) {
             try {
+                // 遍历新增的服务设置为活跃
                 for (T s : ls) {
                     s.setAlive(true); // set so that clients can start using these
                                       // servers right away instead
                                       // of having to wait out the ping cycle.
                 }
+                // 调用自身覆盖的setServersList()方法
                 setServersList(ls);
+                // 调用父类的一次ping服务
                 super.forceQuickPing();
             } finally {
                 serverListUpdateInProgress.set(false);
