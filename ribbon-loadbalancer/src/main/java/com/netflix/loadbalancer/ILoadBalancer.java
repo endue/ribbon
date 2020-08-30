@@ -38,6 +38,7 @@ public interface ILoadBalancer {
 	 * 
 	 * @param newServers new servers to add
 	 */
+	// 增加服务列表
 	public void addServers(List<Server> newServers);
 	
 	/**
@@ -45,6 +46,9 @@ public interface ILoadBalancer {
 	 * 
 	 * @param key An object that the load balancer may use to determine which server to return. null if 
 	 *         the load balancer does not use this parameter.
+	 *
+	 * 根据标识基于LoadBalancer选择一个服务
+	 *
 	 * @return server chosen
 	 */
 	public Server chooseServer(Object key);
@@ -53,7 +57,9 @@ public interface ILoadBalancer {
 	 * To be called by the clients of the load balancer to notify that a Server is down
 	 * else, the LB will think its still Alive until the next Ping cycle - potentially
 	 * (assuming that the LB Impl does a ping)
-	 * 
+	 *
+	 * 标记服务下线
+	 *
 	 * @param server Server to mark as down
 	 */
 	public void markServerDown(Server server);
@@ -65,6 +71,8 @@ public interface ILoadBalancer {
 	 *
 	 * Get the current list of servers.
 	 *
+	 * 过期方法，已采用getReachableServers()和getAllServers()方法实现
+	 *
 	 * @param availableOnly if true, only live and available servers should be returned
 	 */
 	@Deprecated
@@ -72,11 +80,17 @@ public interface ILoadBalancer {
 
 	/**
 	 * @return Only the servers that are up and reachable.
+	 *
+	 * 获取可以的服务列表
+	 *
      */
     public List<Server> getReachableServers();
 
     /**
      * @return All known servers, both reachable and unreachable.
+	 *
+	 * 获取所有的服务列表
+	 *
      */
 	public List<Server> getAllServers();
 }
