@@ -54,9 +54,10 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  * and an "up" server list and use them depending on what the caller asks for.
  *
  * LoadBalancer的基本实现功能
+ *  实现功能如下：
  *  1.可以将任意服务列表加入到服务池中
  *  2.ping可以决定服务是否还具有活性
- *  3.内部还维护了两个服务列表，用来根据调用者的要求请求他们。一个保存所有服务，一个保存活跃服务的
+ *  3.内部维护了两个服务列表，用来根据调用者的要求请求他们。一个保存所有服务，一个保存活跃服务的
  *
  * @author stonse
  * 
