@@ -15,7 +15,7 @@ public class SimpleGet {
     @edu.umd.cs.findbugs.annotations.SuppressWarnings
     public static void main(String[] args) throws Exception {
         LoadBalancingHttpClient<ByteBuf, ByteBuf> client = RibbonTransport.newHttpClient();
-        HttpClientRequest<ByteBuf> request = HttpClientRequest.createGet("http://www.google.com/");
+        HttpClientRequest<ByteBuf> request = HttpClientRequest.createGet("http://www.baidu.com/");
         final CountDownLatch latch = new CountDownLatch(1);
         client.submit(request)
             .toBlocking()

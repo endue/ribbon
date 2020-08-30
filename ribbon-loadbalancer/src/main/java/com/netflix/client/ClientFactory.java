@@ -63,12 +63,17 @@ public class ClientFactory {
     				"A Rest Client with this name is already registered. Please use a different name");
     	}
     	try {
+    	    // 获取ClientClassName，默认com.netflix.niws.client.http.RestClient
+            // 并创建一个客户端
     		String clientClassName = clientConfig.getOrDefault(CommonClientConfigKey.ClientClassName);
     		client = (IClient<?, ?>) instantiateInstanceWithClientConfig(clientClassName, clientConfig);
+    		// 获取InitializeNFLoadBalancer的配置，默认true
+            // 创建loadBalancer
     		boolean initializeNFLoadBalancer = clientConfig.getOrDefault(CommonClientConfigKey.InitializeNFLoadBalancer);
     		if (initializeNFLoadBalancer) {
     			loadBalancer = registerNamedLoadBalancerFromclientConfig(restClientName, clientConfig);
     		}
+    		// 判断类型之后设置到client中
     		if (client instanceof AbstractLoadBalancerAwareClient) {
     			((AbstractLoadBalancerAwareClient) client).setLoadBalancer(loadBalancer);
     		}
@@ -79,6 +84,7 @@ public class ClientFactory {
     		throw new ClientException(ClientException.ErrorType.CONFIGURATION, 
     				message, e);
     	}
+        // 记录到simpleClientMap中：key为服务标识，value为client
     	simpleClientMap.put(restClientName, client);
 
     	Monitors.registerObject("Client_" + restClientName, client);
@@ -92,6 +98,7 @@ public class ClientFactory {
      * 
      * @throws RuntimeException if an error occurs in creating the client.
      */
+    // 获取要调用的服务标识获取其对应的客户端
     public static synchronized IClient getNamedClient(String name) {
         if (simpleClientMap.get(name) != null) {
             return simpleClientMap.get(name);
@@ -181,8 +188,11 @@ public class ClientFactory {
         }
     	ILoadBalancer lb = null;
         try {
+            // 获取ILoadBalancer的默认类型为com.netflix.loadbalancer.ZoneAwareLoadBalancer
+            // 之后创建一个ZoneAwareLoadBalancer
             String loadBalancerClassName = clientConfig.getOrDefault(CommonClientConfigKey.NFLoadBalancerClassName);
-            lb = (ILoadBalancer) ClientFactory.instantiateInstanceWithClientConfig(loadBalancerClassName, clientConfig);                                    
+            lb = (ILoadBalancer) ClientFactory.instantiateInstanceWithClientConfig(loadBalancerClassName, clientConfig);
+            // 记录到namedLBMap中：key为服务标识，value为LoadBalancer
             namedLBMap.put(name, lb);            
             logger.info("Client: {} instantiated a LoadBalancer: {}", name, lb);
             return lb;

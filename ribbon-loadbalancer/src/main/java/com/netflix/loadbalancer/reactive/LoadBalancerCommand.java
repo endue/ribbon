@@ -267,11 +267,12 @@ public class LoadBalancerCommand<T> {
                 return Observable.error(e);
             }
         }
-
+        // 读取MaxAutoRetries，MaxAutoRetriesNextServer的值，默认分别为0，1
         final int maxRetrysSame = retryHandler.getMaxRetriesOnSameServer();
         final int maxRetrysNext = retryHandler.getMaxRetriesOnNextServer();
 
         // Use the load balancer
+        // 这里的selectServer()方法回去回去根据ILoadBalancer选择服务
         Observable<T> o = 
                 (server == null ? selectServer() : Observable.just(server))
                 .concatMap(new Func1<Server, Observable<T>>() {
@@ -332,14 +333,15 @@ public class LoadBalancerCommand<T> {
                                         });
                                     }
                                 });
-                        
-                        if (maxRetrysSame > 0) 
+                        // 判断是否对同一服务重试
+                        if (maxRetrysSame > 0)
+                            // 默认DefaultLoadBalancerRetryHandler
                             o = o.retry(retryPolicy(maxRetrysSame, true));
                         return o;
                     }
                 });
-            
-        if (maxRetrysNext > 0 && server == null) 
+        // 判断是否可以对其他服务重试
+        if (maxRetrysNext > 0 && server == null)
             o = o.retry(retryPolicy(maxRetrysNext, false));
         
         return o.onErrorResumeNext(new Func1<Throwable, Observable<T>>() {

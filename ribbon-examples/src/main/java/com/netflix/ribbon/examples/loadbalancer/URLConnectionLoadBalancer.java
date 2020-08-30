@@ -58,10 +58,10 @@ public class URLConnectionLoadBalancer {
 
     public static void main(String[] args) throws Exception {
         URLConnectionLoadBalancer urlLoadBalancer = new URLConnectionLoadBalancer(Lists.newArrayList(
-                new Server("www.google.com", 80),
-                new Server("www.linkedin.com", 80),
-                new Server("www.yahoo.com", 80)));
-        for (int i = 0; i < 6; i++) {
+                new Server("www.baidu.com", 80),
+                new Server("www.youdao.com", 80),
+                new Server("www.segmentfault.com", 80)));
+        for (int i = 0; i < 9; i++) {
             System.out.println(urlLoadBalancer.call("/"));
         }
         System.out.println("=== Load balancer stats ===");

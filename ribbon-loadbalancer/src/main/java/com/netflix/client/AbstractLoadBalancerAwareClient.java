@@ -91,6 +91,8 @@ public abstract class AbstractLoadBalancerAwareClient<S extends ClientRequest, T
      * URI which does not contain the host name or the protocol.
      */
     public T executeWithLoadBalancer(final S request, final IClientConfig requestConfig) throws ClientException {
+        // 这里会读取
+        // OkToRetryOnAllOperations、retrySameServer、retryNextServer从而在服务调用失败后进行服务重试
         LoadBalancerCommand<T> command = buildLoadBalancerCommand(request, requestConfig);
 
         try {

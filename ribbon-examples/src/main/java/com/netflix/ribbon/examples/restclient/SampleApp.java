@@ -29,22 +29,28 @@ import com.netflix.niws.client.http.RestClient;
 
 public class SampleApp {
 	public static void main(String[] args) throws Exception {
+	    // 读取配置文件
         ConfigurationManager.loadPropertiesFromResources("sample-client.properties");  // 1
+        // 打印服务列表
         System.out.println(ConfigurationManager.getConfigInstance().getProperty("sample-client.ribbon.listOfServers"));
+        // 传入服务标识名称为sample-client
+        // 之后根据服务标识和ClientFactory创建其对应的client和ILoadBalancer
         RestClient client = (RestClient) ClientFactory.getNamedClient("sample-client");  // 2
+        // 构造请求
         HttpRequest request = HttpRequest.newBuilder().uri(new URI("/")).build(); // 3
-        for (int i = 0; i < 20; i++)  {
+        for (int i = 0; i < 2; i++)  {
         	HttpResponse response = client.executeWithLoadBalancer(request); // 4
         	System.out.println("Status code for " + response.getRequestedURI() + "  :" + response.getStatus());
         }
-        @SuppressWarnings("rawtypes")
+       /* @SuppressWarnings("rawtypes")
         ZoneAwareLoadBalancer lb = (ZoneAwareLoadBalancer) client.getLoadBalancer();
+        // 打印LoadBalancerStats中内容
         System.out.println(lb.getLoadBalancerStats());
-        ConfigurationManager.getConfigInstance().setProperty(
-        		"sample-client.ribbon.listOfServers", "www.linkedin.com:80,www.google.com:80"); // 5
+        // 变更服务列表
+        ConfigurationManager.getConfigInstance().setProperty("sample-client.ribbon.listOfServers", "http://localhost:8762/eureka,http://localhost:8764/eureka"); // 5
         System.out.println("changing servers ...");
         Thread.sleep(3000); // 6
-        for (int i = 0; i < 20; i++)  {
+        for (int i = 0; i < 6; i++)  {
             HttpResponse response = null;
             try {
         	    response = client.executeWithLoadBalancer(request);
@@ -55,6 +61,6 @@ public class SampleApp {
                 }
             }
         }
-        System.out.println(lb.getLoadBalancerStats()); // 7
+        System.out.println(lb.getLoadBalancerStats()); // 7*/
 	}
 }
