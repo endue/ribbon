@@ -48,6 +48,9 @@ Once the the worst zone is dropped, a zone will be chosen among the rest with th
 A server will be returned from the chosen zone with a given Rule (A Rule is a load balancing strategy, for example {@link AvailabilityFilteringRule})
 For each request, the steps above will be repeated. That is to say, each zone related load balancing decisions are made at real time with the up-to-date statistics aiding the choice.
 
+ 在DynamicServerListLoadBalancer的功能上增加了针对不同zone获取不同BaseLoadBalancer的功能,
+ 所以这里重写了chooseServer(Object key)方法
+
  * @author awang
  *
  * @param <T>
@@ -117,12 +120,19 @@ public class ZoneAwareLoadBalancer<T extends Server> extends DynamicServerListLo
         this.triggeringBlackoutPercentage = clientConfig.getGlobalProperty(AVOID_ZONE_WITH_BLACKOUT_PERCENTAGE.format(name));
     }
 
+    /**
+     * 重写父类DynamicServerListLoadBalancer中的方法
+     * 因为要针对一个zone设置一个BaseLoadBalancer
+     * @param zoneServersMap
+     */
     @Override
     protected void setServerListForZones(Map<String, List<Server>> zoneServersMap) {
         super.setServerListForZones(zoneServersMap);
         if (balancers == null) {
             balancers = new ConcurrentHashMap<String, BaseLoadBalancer>();
         }
+        // 遍历针对每一个zone设置一个BaseLoadBalancer，之后保存到属性ConcurrentHashMap<String, BaseLoadBalancer> balancers中
+        // 变将zone自己的BaseLoadBalancer中的allServerList设置上值
         for (Map.Entry<String, List<Server>> entry: zoneServersMap.entrySet()) {
         	String zone = entry.getKey().toLowerCase();
             getLoadBalancer(zone).setServersList(entry.getValue());
@@ -130,30 +140,42 @@ public class ZoneAwareLoadBalancer<T extends Server> extends DynamicServerListLo
         // check if there is any zone that no longer has a server
         // and set the list to empty so that the zone related metrics does not
         // contain stale data
+        // 遍历所有zone，如果zoneServersMap中不包含老的zone，那就将老的zone的serverList设成空
         for (Map.Entry<String, BaseLoadBalancer> existingLBEntry: balancers.entrySet()) {
             if (!zoneServersMap.keySet().contains(existingLBEntry.getKey())) {
                 existingLBEntry.getValue().setServersList(Collections.emptyList());
             }
         }
-    }    
-        
+    }
+
+    /**
+     * 选择服务，重新父类的方法，因为一个zone对应一个自己的BaseLoadBalancer
+     * @param key
+     * @return
+     */
     @Override
     public Server chooseServer(Object key) {
+        // ZoneAwareNIWSDiscoveryLoadBalancer.enabled 设置为false(默认true) 或可用zone的数量少于2个，则调用父类的chooseServer(key)方法
         if (!enabled.getOrDefault() || getLoadBalancerStats().getAvailableZones().size() <= 1) {
             logger.debug("Zone aware logic disabled or there is only one zone");
             return super.chooseServer(key);
         }
         Server server = null;
         try {
+            // 获取LoadBalancer统计信息
             LoadBalancerStats lbStats = getLoadBalancerStats();
+            // 获取所有可以服务列表以及对应的zone
             Map<String, ZoneSnapshot> zoneSnapshot = ZoneAvoidanceRule.createSnapshot(lbStats);
             logger.debug("Zone snapshots: {}", zoneSnapshot);
+            // 参数分别为：可以服务列表以及对应zone、0.2、0.99999，然后计算可以使用的zone
             Set<String> availableZones = ZoneAvoidanceRule.getAvailableZones(zoneSnapshot, triggeringLoad.getOrDefault(), triggeringBlackoutPercentage.getOrDefault());
             logger.debug("Available zones: {}", availableZones);
             if (availableZones != null &&  availableZones.size() < zoneSnapshot.keySet().size()) {
+                // 选择一个zone
                 String zone = ZoneAvoidanceRule.randomChooseZone(zoneSnapshot, availableZones);
                 logger.debug("Zone chosen: {}", zone);
                 if (zone != null) {
+                    // 获取这个zone对应的BaseLoadBalancer，之后选择一个服务列表返回
                     BaseLoadBalancer zoneLoadBalancer = getLoadBalancer(zone);
                     server = zoneLoadBalancer.chooseServer(key);
                 }
@@ -163,12 +185,17 @@ public class ZoneAwareLoadBalancer<T extends Server> extends DynamicServerListLo
         }
         if (server != null) {
             return server;
-        } else {
+        } else {// serverd调用父类的方法选择一个服务
             logger.debug("Zone avoidance logic is not invoked.");
             return super.chooseServer(key);
         }
     }
-     
+
+    /**
+     * 获取zone自己的BaseLoadBalancer ，如果为空则创建一个BaseLoadBalancer
+     * @param zone
+     * @return
+     */
     @VisibleForTesting
     BaseLoadBalancer getLoadBalancer(String zone) {
         zone = zone.toLowerCase();
