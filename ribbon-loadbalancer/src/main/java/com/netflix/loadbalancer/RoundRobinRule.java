@@ -30,9 +30,11 @@ import java.util.concurrent.atomic.AtomicInteger;
  * @author stonse
  * @author Nikos Michalakis <nikos@netflix.com>
  *
+ *  服务列表轮询的方式选择服务，选择服务失败最多重试10次
+ *
  */
 public class RoundRobinRule extends AbstractLoadBalancerRule {
-
+    // 计数器用户计算下一台服务的下标，默认0
     private AtomicInteger nextServerCyclicCounter;
     private static final boolean AVAILABLE_ONLY_SERVERS = true;
     private static final boolean ALL_SERVERS = false;
@@ -48,6 +50,12 @@ public class RoundRobinRule extends AbstractLoadBalancerRule {
         setLoadBalancer(lb);
     }
 
+    /**
+     * 默认最多重试10次
+     * @param lb 负载均衡器
+     * @param key 服务标识
+     * @return
+     */
     public Server choose(ILoadBalancer lb, Object key) {
         if (lb == null) {
             log.warn("no load balancer");
@@ -57,8 +65,11 @@ public class RoundRobinRule extends AbstractLoadBalancerRule {
         Server server = null;
         int count = 0;
         while (server == null && count++ < 10) {
+            // 活跃服务列表
             List<Server> reachableServers = lb.getReachableServers();
+            // 所有服务列表
             List<Server> allServers = lb.getAllServers();
+            // 活跃和所有服务的总数
             int upCount = reachableServers.size();
             int serverCount = allServers.size();
 
@@ -66,7 +77,7 @@ public class RoundRobinRule extends AbstractLoadBalancerRule {
                 log.warn("No up servers available from load balancer: " + lb);
                 return null;
             }
-
+            // 计算服务下标
             int nextServerIndex = incrementAndGetModulo(serverCount);
             server = allServers.get(nextServerIndex);
 
@@ -96,6 +107,8 @@ public class RoundRobinRule extends AbstractLoadBalancerRule {
      *
      * @param modulo The modulo to bound the value of the counter.
      * @return The next value.
+     *
+     * 获取当前服务下标，之后计算下一个服务下标
      */
     private int incrementAndGetModulo(int modulo) {
         for (;;) {
@@ -106,6 +119,11 @@ public class RoundRobinRule extends AbstractLoadBalancerRule {
         }
     }
 
+    /**
+     * 基于key选择服务
+     * @param key
+     * @return
+     */
     @Override
     public Server choose(Object key) {
         return choose(getLoadBalancer(), key);

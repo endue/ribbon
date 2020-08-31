@@ -66,6 +66,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * When there is not enough statistics gathered for the servers, this rule
  * will fall back to use {@link RoundRobinRule}. 
  * @author stonse
+ *
+ * 带权重的选择服务列表，权重根据服务的平均响应时间，每30s计算一次
+ *
  */
 public class WeightedResponseTimeRule extends RoundRobinRule {
 
@@ -94,6 +97,7 @@ public class WeightedResponseTimeRule extends RoundRobinRule {
     
     // holds the accumulated weight from index 0 to current index
     // for example, element at index 2 holds the sum of weight of servers from 0 to 2
+    // 记录服务的权重，没30s更新一次
     private volatile List<Double> accumulatedWeights = new ArrayList<Double>();
     
 

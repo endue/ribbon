@@ -24,10 +24,14 @@ import com.netflix.client.config.IClientConfig;
  * {@link IRule} can be cascaded, this {@link RetryRule} class allows adding a retry logic to an existing Rule.
  * 
  * @author stonse
+ *
+ * 这种方式其实是对轮询的扩展，轮询访问最多重试10次，而这种方式是在重试的时候增加了等待时间，默认500ms
  * 
  */
 public class RetryRule extends AbstractLoadBalancerRule {
+	// 子选择服务的规则：轮询
 	IRule subRule = new RoundRobinRule();
+	// 重新选择时的最大等待时间
 	long maxRetryMillis = 500;
 
 	public RetryRule() {
@@ -76,16 +80,18 @@ public class RetryRule extends AbstractLoadBalancerRule {
 	 * early.
 	 */
 	public Server choose(ILoadBalancer lb, Object key) {
+		// 当前时间
 		long requestTime = System.currentTimeMillis();
+		// 最大等待时间
 		long deadline = requestTime + maxRetryMillis;
 
 		Server answer = null;
-
+		// 子规则轮询选择一个服务
 		answer = subRule.choose(key);
-
+		// 选择服务为空或者非活跃，重新选择，最大等待时间500ms
 		if (((answer == null) || (!answer.isAlive()))
 				&& (System.currentTimeMillis() < deadline)) {
-
+			// 新建任务，用来打断当前线程
 			InterruptTask task = new InterruptTask(deadline
 					- System.currentTimeMillis());
 

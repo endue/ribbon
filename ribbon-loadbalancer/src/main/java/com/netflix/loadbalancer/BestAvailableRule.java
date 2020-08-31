@@ -28,25 +28,36 @@ import java.util.List;
  * concurrent requests among a small number of servers. Also, each client will get a random list of 
  * servers which avoids the problem that one server with the lowest concurrent requests is 
  * chosen by a large number of clients and immediately gets overwhelmed.
- * 
+ * 这个规则通常应该与{@link ServerListSubsetFilter}一起工作，它对规则可见的服务器设置了一个限制。
+ * 这确保它只需要在少量服务器中查找最小的并发请求。此外，每个客户端将获得一个随机的服务器列表，
+ * 这避免了大量客户端选择一个具有最低并发请求的服务器而立即不堪重负的问题。
+ *
+ * 选择请求量最小的服务，过滤掉不可用的服务
+ *
  * @author awang
  *
  */
 public class BestAvailableRule extends ClientConfigEnabledRoundRobinRule {
-
+    // 记录了LoadBalancer中对服务的统计信息
     private LoadBalancerStats loadBalancerStats;
     
     @Override
     public Server choose(Object key) {
+        // if成立，采用父类轮询的方式
         if (loadBalancerStats == null) {
             return super.choose(key);
         }
+        // 所有服务列表
         List<Server> serverList = getLoadBalancer().getAllServers();
+        // 标记最小并发量
         int minimalConcurrentConnections = Integer.MAX_VALUE;
         long currentTime = System.currentTimeMillis();
         Server chosen = null;
+        // 遍历所有服务，获取最新连接数的服务
         for (Server server: serverList) {
+            // 获取服务的统计信息
             ServerStats serverStats = loadBalancerStats.getSingleServerStat(server);
+            // 判断当前服务是否断路，如果不是，获取连接数并记录
             if (!serverStats.isCircuitBreakerTripped(currentTime)) {
                 int concurrentConnections = serverStats.getActiveRequestsCount(currentTime);
                 if (concurrentConnections < minimalConcurrentConnections) {

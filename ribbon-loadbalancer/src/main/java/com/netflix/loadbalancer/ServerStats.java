@@ -44,10 +44,13 @@ public class ServerStats {
 
     private static final int DEFAULT_PUBLISH_INTERVAL =  60 * 1000; // = 1 minute
     private static final int DEFAULT_BUFFER_SIZE = 60 * 1000; // = 1000 requests/sec for 1 minute
-
+    // 默认3
     private final UnboxedIntProperty connectionFailureThreshold;
+    // 默认10
     private final UnboxedIntProperty circuitTrippedTimeoutFactor;
+    // 默认30
     private final UnboxedIntProperty maxCircuitTrippedTimeout;
+    // 默认60 * 10
     private final UnboxedIntProperty activeRequestsCountTimeout;
 
     private static final double[] PERCENTS = makePercentValues();
@@ -68,16 +71,16 @@ public class ServerStats {
     Server server;
     
     AtomicLong totalRequests = new AtomicLong();
-    
+    // 连接失败计数器
     @VisibleForTesting
     AtomicInteger successiveConnectionFailureCount = new AtomicInteger(0);
-    
+    // 当前服务请求数
     @VisibleForTesting
     AtomicInteger activeRequestsCount = new AtomicInteger(0);
-
+    // 当前服务连接数
     @VisibleForTesting
     AtomicInteger openConnectionsCount = new AtomicInteger(0);
-    
+    // 记录最近一次连接失败的时间戳
     private volatile long lastConnectionFailedTimestamp;
     private volatile long lastActiveRequestsCountChangeTimestamp;
     private AtomicLong totalCircuitBreakerBlackOutPeriod = new AtomicLong(0);
@@ -266,7 +269,9 @@ public class ServerStats {
     public boolean isCircuitBreakerTripped() {
         return isCircuitBreakerTripped(System.currentTimeMillis());
     }
-    
+
+    // 就是判断当前服务是否断路状态，true断路，false 没断路
+    // 传入的时间与所需停顿时间比较，
     public boolean isCircuitBreakerTripped(long currentTime) {
         long circuitBreakerTimeout = getCircuitBreakerTimeout();
         if (circuitBreakerTimeout <= 0) {
@@ -275,6 +280,7 @@ public class ServerStats {
         return circuitBreakerTimeout > currentTime;
     }
 
+    // 获取服务上次连接失败的时间 + 所需停顿时间
     private long getCircuitBreakerTimeout() {
         long blackOutPeriod = getCircuitBreakerBlackoutPeriod();
         if (blackOutPeriod <= 0) {
@@ -282,7 +288,9 @@ public class ServerStats {
         }
         return lastConnectionFailedTimestamp + blackOutPeriod;
     }
-    
+
+    // 当服务连续失败后，会调用次方法
+    // 如果超过阈值，当前服务进入断路状态
     private long getCircuitBreakerBlackoutPeriod() {
         int failureCount = successiveConnectionFailureCount.get();
         int threshold = connectionFailureThreshold.get();
@@ -296,10 +304,12 @@ public class ServerStats {
         }
         return blackOutSeconds * 1000L;
     }
-    
+
+    // 递增连续连接失败计数
     public void incrementSuccessiveConnectionFailureCount() {
         lastConnectionFailedTimestamp = System.currentTimeMillis();
         successiveConnectionFailureCount.incrementAndGet();
+        // 记录服务总断路次数
         totalCircuitBreakerBlackOutPeriod.addAndGet(getCircuitBreakerBlackoutPeriod());
     }
     

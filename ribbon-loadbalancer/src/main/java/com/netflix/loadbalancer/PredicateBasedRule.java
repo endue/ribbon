@@ -22,7 +22,8 @@ import com.google.common.base.Optional;
 /**
  * A rule which delegates the server filtering logic to an instance of {@link AbstractServerPredicate}.
  * After filtering, a server is returned from filtered list in a round robin fashion.
- * 
+ *
+ * 增加过滤功能
  * 
  * @author awang
  *

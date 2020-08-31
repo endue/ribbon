@@ -24,6 +24,9 @@ import com.netflix.client.config.IClientConfig;
  * loadbalancer package
  * 
  * @author stonse
+ *
+ * 啥也没干，默认使用的是轮询的方式选择服务
+ * 其实可以继承该类，然后写自己的实现方式，如果获取失败在调用该类中的实现方式
  * 
  */
 public class ClientConfigEnabledRoundRobinRule extends AbstractLoadBalancerRule {
