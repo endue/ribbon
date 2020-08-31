@@ -30,6 +30,9 @@ import com.netflix.loadbalancer.Server;
 /**
  * "Ping" Discovery Client
  * i.e. we dont do a real "ping". We just assume that the server is up if Discovery Client says so
+ *
+ * 并不是真正意义上的ping操作，而是访问Discovery Client问服务端是否up状态，这种由于Discovery Client缓存问题，很可能导致服务实际非up状态
+ *
  * @author stonse
  *
  */
@@ -53,6 +56,11 @@ public class NIWSDiscoveryPing extends AbstractLoadBalancerPing {
 			this.lb = lb;
 		}
 
+	/**
+	 * 获取参数server的服务实例，判断状态是否为up从而标记其状态
+	 * @param server
+	 * @return
+	 */
 		public boolean isAlive(Server server) {
 		    boolean isAlive = true;
 		    if (server!=null && server instanceof DiscoveryEnabledServer){

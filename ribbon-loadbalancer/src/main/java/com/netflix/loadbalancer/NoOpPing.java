@@ -21,6 +21,8 @@ package com.netflix.loadbalancer;
  * No Op Ping
  * @author stonse
  *
+ * 鸡毛也没干，直接返回true
+ *
  */
 public class NoOpPing implements IPing {
 

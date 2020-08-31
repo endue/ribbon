@@ -23,6 +23,8 @@ import com.netflix.client.config.IClientConfig;
  * Default simple implementation that marks the liveness of a Server
  * 
  * @author stonse
+ *
+ * 鸡毛也没干，直接返回true
  * 
  */
 public class DummyPing extends AbstractLoadBalancerPing {

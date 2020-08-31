@@ -41,16 +41,19 @@ import java.io.IOException;
  * HealthChecks.
  * 
  * Choose your Ping based on your needs.
+ *
+ * 基于http/s进行url的ping服务,通过httpclient的方式请求url
  * 
  * @author stonse
  * 
  */
 public class PingUrl implements IPing {
     private static final Logger LOGGER = LoggerFactory.getLogger(PingUrl.class);
-
+		// ping时增加的字符串
 		String pingAppendString = "";
+		// 是否启用https，默认http
 		boolean isSecure = false;
-		
+		// 预期返回内容
 		String expectedContent = null;
 
 		/*
