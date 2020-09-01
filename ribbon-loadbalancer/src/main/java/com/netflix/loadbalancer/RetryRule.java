@@ -26,6 +26,7 @@ import com.netflix.client.config.IClientConfig;
  * @author stonse
  *
  * 这种方式其实是对轮询的扩展，轮询访问最多重试10次，而这种方式是在重试的时候增加了等待时间，默认500ms
+ * 获取服务的时候，增加了一个任务，到达阈值时间后就出打断当前选择服务的线程
  * 
  */
 public class RetryRule extends AbstractLoadBalancerRule {

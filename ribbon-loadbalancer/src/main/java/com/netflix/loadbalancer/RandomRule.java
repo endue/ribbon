@@ -28,7 +28,7 @@ import java.util.concurrent.ThreadLocalRandom;
  * 
  * @author stonse
  *
- * 随机访问，选择服务失败会进入无限循环
+ * 随机访问，选择服务一直失败就会进入无限循环
  * 
  */
 public class RandomRule extends AbstractLoadBalancerRule {
