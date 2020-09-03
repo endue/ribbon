@@ -91,7 +91,7 @@ public abstract class AbstractLoadBalancerAwareClient<S extends ClientRequest, T
      * URI which does not contain the host name or the protocol.
      */
     public T executeWithLoadBalancer(final S request, final IClientConfig requestConfig) throws ClientException {
-        // 这里会读取
+        // 这里会创建一个RequestSpecificRetryHandler并读取以下配置信息
         // OkToRetryOnAllOperations、retrySameServer、retryNextServer从而在服务调用失败后进行服务重试
         LoadBalancerCommand<T> command = buildLoadBalancerCommand(request, requestConfig);
 
@@ -120,12 +120,19 @@ public abstract class AbstractLoadBalancerAwareClient<S extends ClientRequest, T
                 throw new ClientException(e);
             }
         }
-        
+
     }
     
     public abstract RequestSpecificRetryHandler getRequestSpecificRetryHandler(S request, IClientConfig requestConfig);
 
+    /**
+     *
+     * @param request 实验传入的是HttpRequest
+     * @param config
+     * @return
+     */
     protected LoadBalancerCommand<T> buildLoadBalancerCommand(final S request, final IClientConfig config) {
+        // 创建一个RetryHandler
 		RequestSpecificRetryHandler handler = getRequestSpecificRetryHandler(request, config);
 		LoadBalancerCommand.Builder<T> builder = LoadBalancerCommand.<T>builder()
 				.withLoadBalancerContext(this)

@@ -64,7 +64,8 @@ public class ClientFactory {
     	}
     	try {
     	    // 获取ClientClassName，默认com.netflix.niws.client.http.RestClient
-            // 并创建一个客户端
+            // 所以clientClassName = com.netflix.niws.client.http.RestClient
+            // 之后创建一个客户端RestClient
     		String clientClassName = clientConfig.getOrDefault(CommonClientConfigKey.ClientClassName);
     		client = (IClient<?, ?>) instantiateInstanceWithClientConfig(clientClassName, clientConfig);
     		// 获取InitializeNFLoadBalancer的配置，默认true
@@ -104,6 +105,8 @@ public class ClientFactory {
             return simpleClientMap.get(name);
         }
         try {
+            // 第一步：获取或创建对应客户端的一个配置类IClientConfig，这里返回DefaultClientConfigImpl
+            // 第二步： 创建一个客户端IClient
             return registerClientFromProperties(name, getNamedConfig(name));
         } catch (ClientException e) {
             throw new RuntimeException("Unable to create client", e);

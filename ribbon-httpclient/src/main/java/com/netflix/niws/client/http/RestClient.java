@@ -633,6 +633,12 @@ public class RestClient extends AbstractLoadBalancerAwareClient<HttpRequest, Htt
 		return super.deriveHostAndPortFromVipAddress(vipAddress);
 	}
 
+    /**
+     *
+     * @param request 实验传入的是HttpRequest
+     * @param requestConfig
+     * @return
+     */
     @Override
     public RequestSpecificRetryHandler getRequestSpecificRetryHandler(
             HttpRequest request, IClientConfig requestConfig) {
