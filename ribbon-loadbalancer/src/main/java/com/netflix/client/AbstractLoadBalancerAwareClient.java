@@ -132,7 +132,8 @@ public abstract class AbstractLoadBalancerAwareClient<S extends ClientRequest, T
      * @return
      */
     protected LoadBalancerCommand<T> buildLoadBalancerCommand(final S request, final IClientConfig config) {
-        // 创建一个RetryHandler
+        // 创建一个RequestSpecificRetryHandler
+        // getRequestSpecificRetryHandler()这个方法在当前类是个抽象方法被子类RestClient实现
 		RequestSpecificRetryHandler handler = getRequestSpecificRetryHandler(request, config);
 		LoadBalancerCommand.Builder<T> builder = LoadBalancerCommand.<T>builder()
 				.withLoadBalancerContext(this)

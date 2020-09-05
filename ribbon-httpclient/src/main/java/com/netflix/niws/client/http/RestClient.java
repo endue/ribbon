@@ -642,12 +642,15 @@ public class RestClient extends AbstractLoadBalancerAwareClient<HttpRequest, Htt
     @Override
     public RequestSpecificRetryHandler getRequestSpecificRetryHandler(
             HttpRequest request, IClientConfig requestConfig) {
+        // 判断请求是否允许重试
         if (!request.isRetriable()) {
             return new RequestSpecificRetryHandler(false, false, this.getRetryHandler(), requestConfig);
         }
+        // 获取OkToRetryOnAllOperations的值，判断是否所有请求都可以重试，默认false
         if (this.ncc.get(CommonClientConfigKey.OkToRetryOnAllOperations, false)) {
             return new RequestSpecificRetryHandler(true, true, this.getRetryHandler(), requestConfig);
         }
+        //
         if (request.getVerb() != HttpRequest.Verb.GET) {
             return new RequestSpecificRetryHandler(true, false, this.getRetryHandler(), requestConfig);
         } else {
