@@ -28,11 +28,14 @@ import java.net.ConnectException;
  */
 public interface RetryHandler {
 
+    /**
+     * 默认的重试策略
+     */
     public static final RetryHandler DEFAULT = new DefaultLoadBalancerRetryHandler();
     
     /**
      * Test if an exception is retriable for the load balancer
-     * 
+     * 是否可以重试的异常，sameServer为true表示在同一台机器上，false表示尝试其他机器
      * @param e the original exception
      * @param sameServer if true, the method is trying to determine if retry can be 
      *        done on the same server. Otherwise, it is testing whether retry can be
@@ -41,6 +44,7 @@ public interface RetryHandler {
     public boolean isRetriableException(Throwable e, boolean sameServer);
 
     /**
+     * 是否是熔断异常
      * Test if an exception should be treated as circuit failure. For example, 
      * a {@link ConnectException} is a circuit failure. This is used to determine
      * whether successive exceptions of such should trip the circuit breaker to a particular

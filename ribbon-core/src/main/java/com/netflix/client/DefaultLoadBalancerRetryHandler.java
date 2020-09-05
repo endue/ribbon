@@ -35,16 +35,20 @@ import java.util.List;
  */
 public class DefaultLoadBalancerRetryHandler implements RetryHandler {
 
+    // 保存可以重试的异常类
     @SuppressWarnings("unchecked")
     private List<Class<? extends Throwable>> retriable = 
             Lists.<Class<? extends Throwable>>newArrayList(ConnectException.class, SocketTimeoutException.class);
-    
+    // 熔断异常
     @SuppressWarnings("unchecked")
     private List<Class<? extends Throwable>> circuitRelated = 
             Lists.<Class<? extends Throwable>>newArrayList(SocketException.class, SocketTimeoutException.class);
 
+    // 同一个服务可重试次数
     protected final int retrySameServer;
+    // 可重试其他服务的次数
     protected final int retryNextServer;
+    // 所有操作是否都可以重试
     protected final boolean retryEnabled;
 
     public DefaultLoadBalancerRetryHandler() {
@@ -60,14 +64,17 @@ public class DefaultLoadBalancerRetryHandler implements RetryHandler {
     }
     
     public DefaultLoadBalancerRetryHandler(IClientConfig clientConfig) {
+        // 读取配置文件中的值，默认 0
         this.retrySameServer = clientConfig.getOrDefault(CommonClientConfigKey.MaxAutoRetries);
+        // 读取配置文件中的值，默认 1
         this.retryNextServer = clientConfig.getOrDefault(CommonClientConfigKey.MaxAutoRetriesNextServer);
+        // 读取配置文件中的值，默认 false
         this.retryEnabled = clientConfig.getOrDefault(CommonClientConfigKey.OkToRetryOnAllOperations);
     }
-    
+
     @Override
     public boolean isRetriableException(Throwable e, boolean sameServer) {
-        if (retryEnabled) {
+        if (retryEnabled) {// 开启所有请求都可以重试
             if (sameServer) {
                 return Utils.isPresentAsCause(e, getRetriableExceptions());
             } else {
@@ -94,7 +101,7 @@ public class DefaultLoadBalancerRetryHandler implements RetryHandler {
     public int getMaxRetriesOnNextServer() {
         return retryNextServer;
     }
-    
+
     protected List<Class<? extends Throwable>> getRetriableExceptions() {
         return retriable;
     }
